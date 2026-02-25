@@ -1,0 +1,17 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node (if anyone adds build tooling later)
+node_modules/
+npm-debug.log
+
+# Env (don't commit API keys)
+.env
+.env.local

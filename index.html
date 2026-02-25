@@ -668,6 +668,158 @@
   }
   .history-badge span { color: var(--accent3); }
 
+
+  /* ── Onboarding tour ── */
+  .tour-overlay {
+    position: fixed; inset: 0;
+    z-index: 900;
+    pointer-events: none;
+  }
+
+  /* Dark mask with spotlight cutout via clip-path */
+  .tour-mask {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.82);
+    z-index: 901;
+    pointer-events: all;
+    transition: clip-path 0.45s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  /* Spotlight ring around target */
+  .tour-spotlight-ring {
+    position: fixed;
+    border-radius: 14px;
+    box-shadow: 0 0 0 3px var(--accent), 0 0 0 6px rgba(0,229,195,0.2);
+    z-index: 902;
+    pointer-events: none;
+    transition: all 0.45s cubic-bezier(0.4,0,0.2,1);
+    animation: tourPulse 2s ease infinite;
+  }
+  body.warm-theme .tour-spotlight-ring {
+    box-shadow: 0 0 0 3px #cc1111, 0 0 0 6px rgba(204,17,17,0.2);
+  }
+  @keyframes tourPulse {
+    0%,100% { box-shadow: 0 0 0 3px var(--accent), 0 0 0 6px rgba(0,229,195,0.2); }
+    50%      { box-shadow: 0 0 0 3px var(--accent), 0 0 0 14px rgba(0,229,195,0.08); }
+  }
+  body.warm-theme .tour-spotlight-ring {
+    animation: tourPulseRed 2s ease infinite;
+  }
+  @keyframes tourPulseRed {
+    0%,100% { box-shadow: 0 0 0 3px #cc1111, 0 0 0 6px rgba(204,17,17,0.2); }
+    50%      { box-shadow: 0 0 0 3px #cc1111, 0 0 0 14px rgba(204,17,17,0.08); }
+  }
+
+  /* Tour card */
+  .tour-card {
+    position: fixed;
+    z-index: 903;
+    background: #0d1525;
+    border: 1px solid rgba(0,229,195,0.25);
+    border-radius: 16px;
+    padding: 20px 22px;
+    max-width: 300px;
+    width: calc(100vw - 40px);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    pointer-events: all;
+    transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
+    animation: tourCardIn 0.35s ease;
+  }
+  body.warm-theme .tour-card {
+    border-color: rgba(204,17,17,0.3);
+    background: #130808;
+  }
+  @keyframes tourCardIn {
+    from { opacity: 0; transform: translateY(10px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* Arrow SVG */
+  .tour-arrow {
+    position: fixed;
+    z-index: 903;
+    pointer-events: none;
+    transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .tour-step-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+  }
+  body.warm-theme .tour-step-label { color: #cc1111; }
+
+  .tour-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    line-height: 1.3;
+    color: var(--text);
+  }
+
+  .tour-body {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.65;
+    margin-bottom: 18px;
+  }
+
+  .tour-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .tour-next {
+    flex: 1;
+    padding: 10px 16px;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .tour-next:hover { filter: brightness(1.1); }
+  body.warm-theme .tour-next { background: #cc1111; color: #fff; }
+
+  .tour-skip {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    padding: 4px;
+    transition: color 0.2s;
+  }
+  .tour-skip:hover { color: var(--text); }
+
+  .tour-dots {
+    display: flex;
+    gap: 5px;
+    margin-right: auto;
+  }
+  .tour-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    transition: all 0.3s;
+  }
+  .tour-dot.active {
+    background: var(--accent);
+    width: 14px;
+    border-radius: 3px;
+  }
+  body.warm-theme .tour-dot.active { background: #cc1111; }
+
   @media (max-width: 520px) {
     .card { padding: 24px 20px; }
     .card-title { font-size: 1.2rem; }
@@ -739,7 +891,7 @@
 
   <div class="header">
     <div class="logo">Flut<span>ters</span></div>
-    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+    <div id="streakSyncWrap" style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
       <div class="streak-badge">🔥 <span id="streakCount">0</span> day streak</div>
       <button class="streak-sync-btn" onclick="openSyncModal()">sync across devices</button>
     </div>
@@ -796,7 +948,7 @@
           Every session: 3 genuinely different facts from nursing biology — memory tricks, wild physiology, and cutting-edge research. 5 minutes. That's all.
         </div>
         <div class="btn-row" style="justify-content:center">
-          <button class="btn btn-primary" onclick="startSession()">Start Today's Session</button>
+          <button class="btn btn-primary" id="startBtn" onclick="startSession()">Start Today's Session</button>
         </div>
       </div>
     </div>
@@ -871,6 +1023,7 @@ function initPersonalisation() {
 
 function closeWelcome() {
   document.getElementById('welcomeOverlay').style.display = 'none';
+  checkAndStartTour(); // start tour after welcome card on her version
 }
 
 // ─── Sync code ────────────────────────────────────────────────────────────────
@@ -1517,12 +1670,240 @@ function reviewSaved() {
   document.getElementById('savedSection').scrollIntoView({ behavior: 'smooth' });
 }
 
+
+// ─── Onboarding tour ──────────────────────────────────────────────────────────
+const TOUR_STEPS = [
+  {
+    targetId: 'catChips',
+    label: 'Step 1 of 5 · Categories',
+    title: 'Pick your topic',
+    body: 'Choose a subject you want to learn about — or let "Surprise Me" pick something fascinating at random. A new mix every session.',
+    position: 'below',
+  },
+  {
+    targetId: 'startBtn',
+    label: 'Step 2 of 5 · Sessions',
+    title: 'Start your 5-minute session',
+    body: 'Tap this to begin. A countdown timer starts — 3 facts load one by one. Finish all 3 to complete the session and log your streak.',
+    position: 'above',
+  },
+  {
+    targetId: 'mainArea',
+    label: 'Step 3 of 5 · Saving facts',
+    title: 'Bookmark facts you love',
+    body: 'During a session, each fact card has a 📌 button. Tap it to save that fact forever. Saved facts sync across your devices automatically.',
+    position: 'below',
+  },
+  {
+    targetId: 'streakSyncWrap',
+    label: 'Step 4 of 5 · Streaks',
+    title: 'Your daily streak',
+    body: 'Complete a session each day to build your streak. It updates the moment you finish — timer or button, whichever comes first.',
+    position: 'below',
+  },
+  {
+    targetId: 'streakSyncWrap',
+    label: 'Step 5 of 5 · Sync',
+    title: 'Sync across devices',
+    body: 'Tap "sync across devices" to get your sync code. Paste it on your phone or laptop — your streak and saved facts merge automatically.',
+    position: 'below',
+  },
+];
+
+let tourStep = 0;
+let tourActive = false;
+
+function startTour() {
+  tourActive = true;
+  tourStep = 0;
+  document.getElementById('tourMask').style.display = 'block';
+  document.getElementById('tourRing').style.display = 'block';
+  document.getElementById('tourCard').style.display = 'block';
+  document.getElementById('tourArrow').style.display = 'block';
+  renderTourStep();
+}
+
+function endTour() {
+  tourActive = false;
+  document.getElementById('tourMask').style.display = 'none';
+  document.getElementById('tourRing').style.display = 'none';
+  document.getElementById('tourCard').style.display = 'none';
+  document.getElementById('tourArrow').style.display = 'none';
+  localStorage.setItem('flutters_tour_done', '1');
+}
+
+function tourNext() {
+  tourStep++;
+  if (tourStep >= TOUR_STEPS.length) { endTour(); return; }
+  // Re-render — card animates back in via CSS
+  const card = document.getElementById('tourCard');
+  card.style.animation = 'none';
+  card.offsetHeight; // reflow
+  card.style.animation = 'tourCardIn 0.35s ease';
+  renderTourStep();
+}
+
+function renderTourStep() {
+  const step = TOUR_STEPS[tourStep];
+  const target = document.getElementById(step.targetId);
+  if (!target) { tourNext(); return; }
+
+  // Update text
+  document.getElementById('tourStepLabel').textContent = step.label;
+  document.getElementById('tourTitle').textContent = step.title;
+  document.getElementById('tourBody').textContent = step.body;
+  document.getElementById('tourNextBtn').textContent =
+    tourStep === TOUR_STEPS.length - 1 ? 'Got it 🎉' : 'Next →';
+
+  // Dots
+  document.getElementById('tourDots').innerHTML = TOUR_STEPS.map((_, i) =>
+    `<div class="tour-dot ${i === tourStep ? 'active' : ''}"></div>`
+  ).join('');
+
+  // Position spotlight on target
+  positionTourSpotlight(target, step.position);
+}
+
+function positionTourSpotlight(target, position) {
+  const rect = target.getBoundingClientRect();
+  const pad = 10;
+
+  // Spotlight ring
+  const ring = document.getElementById('tourRing');
+  ring.style.left   = (rect.left   - pad) + 'px';
+  ring.style.top    = (rect.top    - pad) + 'px';
+  ring.style.width  = (rect.width  + pad * 2) + 'px';
+  ring.style.height = (rect.height + pad * 2) + 'px';
+
+  // Clip-path cutout on dark mask — invert: everything dark EXCEPT the target rect
+  const mask = document.getElementById('tourMask');
+  const l = rect.left - pad, t = rect.top - pad;
+  const r = rect.right + pad, b = rect.bottom + pad;
+  const W = window.innerWidth, H = window.innerHeight;
+  const R = 14; // corner radius approximated as chamfer
+  // Polygon path: outer rect, then inner rect (clockwise/counter creates hole)
+  mask.style.clipPath = `polygon(
+    0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%,
+    ${l}px ${t + R}px,
+    ${l}px ${b - R}px,
+    ${l + R}px ${b}px,
+    ${r - R}px ${b}px,
+    ${r}px ${b - R}px,
+    ${r}px ${t + R}px,
+    ${r - R}px ${t}px,
+    ${l + R}px ${t}px,
+    ${l}px ${t + R}px,
+    0% 0%
+  )`;
+
+  // Card position — below or above the spotlight
+  const card = document.getElementById('tourCard');
+  const cardW = Math.min(300, window.innerWidth - 40);
+  const margin = 18;
+
+  let cardTop, cardLeft;
+
+  if (position === 'below') {
+    cardTop  = b + margin;
+    // Flip above if card would go off bottom
+    if (cardTop + 160 > window.innerHeight - 20) {
+      cardTop = t - margin - 160;
+    }
+  } else {
+    cardTop = t - margin - 160;
+    if (cardTop < 20) cardTop = b + margin;
+  }
+
+  // Horizontally: centre on target, clamp to screen
+  cardLeft = rect.left + (rect.width / 2) - (cardW / 2);
+  cardLeft = Math.max(20, Math.min(cardLeft, window.innerWidth - cardW - 20));
+
+  card.style.top    = cardTop + 'px';
+  card.style.left   = cardLeft + 'px';
+  card.style.width  = cardW + 'px';
+
+  // Arrow: connect card edge to spotlight ring
+  positionArrow(rect, card, cardTop, cardLeft, cardW, position);
+}
+
+function positionArrow(targetRect, card, cardTop, cardLeft, cardW, position) {
+  const arrow = document.getElementById('tourArrow');
+  const path  = document.getElementById('tourArrowPath');
+  const pad = 10;
+
+  const spotCX = targetRect.left + targetRect.width / 2;
+  const cardCX = cardLeft + cardW / 2;
+
+  let x1, y1, x2, y2;
+
+  if (position === 'below' && cardTop > targetRect.bottom) {
+    // Card is below — arrow goes from bottom of spotlight to top of card
+    x1 = 0; y1 = 0;
+    x2 = cardCX - spotCX; y2 = cardTop - (targetRect.bottom + pad);
+    arrow.style.left = spotCX + 'px';
+    arrow.style.top  = (targetRect.bottom + pad) + 'px';
+  } else {
+    // Card is above — arrow goes from top of spotlight to bottom of card
+    const cardBottom = cardTop + 155;
+    x1 = 0; y1 = cardBottom - (targetRect.top - pad);
+    x2 = spotCX - (cardLeft + cardW / 2); y2 = 0;
+    arrow.style.left = Math.min(spotCX, cardLeft + cardW/2) + 'px';
+    arrow.style.top  = cardTop + 155 + 'px';
+  }
+
+  const w = Math.abs(x2 - x1) + 20;
+  const h = Math.abs(y2 - y1) + 10;
+  arrow.setAttribute('width', w);
+  arrow.setAttribute('height', h);
+  arrow.setAttribute('viewBox', `0 0 ${w} ${h}`);
+
+  // Curved path
+  const mx = w / 2, my = h / 2;
+  path.setAttribute('d', `M ${10} ${y1 < y2 ? 5 : h-5} Q ${mx} ${my} ${w-10} ${y1 < y2 ? h-5 : 5}`);
+}
+
+function checkAndStartTour() {
+  const done = localStorage.getItem('flutters_tour_done');
+  if (!done) {
+    // Small delay so page is fully rendered
+    setTimeout(startTour, 400);
+  }
+}
+
+// Reposition on resize/scroll
+window.addEventListener('resize', () => { if (tourActive) renderTourStep(); });
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 initPersonalisation();
+if (!IS_PERSONAL) checkAndStartTour(); // regular visitors get tour immediately
 initStreak(); // shows 0 while loading
 loadFromServer(); // loads streak + saved from server, then updates display
 loadHistory();
 updateTimerDisplay(TOTAL_TIME);
 </script>
+
+<!-- Tour overlay elements -->
+<div class="tour-mask" id="tourMask" style="display:none"></div>
+<div class="tour-spotlight-ring" id="tourRing" style="display:none"></div>
+<svg class="tour-arrow" id="tourArrow" style="display:none" width="40" height="60" viewBox="0 0 40 60">
+  <defs>
+    <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="var(--accent)" id="arrowheadPoly"/>
+    </marker>
+  </defs>
+  <path id="tourArrowPath" stroke="var(--accent)" stroke-width="2.5" fill="none"
+        marker-end="url(#arrowhead)" stroke-dasharray="5,3"/>
+</svg>
+<div class="tour-card" id="tourCard" style="display:none">
+  <div class="tour-step-label" id="tourStepLabel"></div>
+  <div class="tour-title" id="tourTitle"></div>
+  <div class="tour-body" id="tourBody"></div>
+  <div class="tour-buttons">
+    <div class="tour-dots" id="tourDots"></div>
+    <button class="tour-skip" onclick="endTour()">Skip</button>
+    <button class="tour-next" id="tourNextBtn" onclick="tourNext()">Next →</button>
+  </div>
+</div>
+
 </body>
 </html>

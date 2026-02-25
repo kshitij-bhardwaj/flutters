@@ -1368,19 +1368,23 @@ function startTimer() {
   timerInterval = setInterval(() => {
     secondsLeft--;
     updateTimerDisplay(secondsLeft);
-    if (secondsLeft <= 0) { clearInterval(timerInterval); onTimerComplete(); }
+    if (secondsLeft <= 0) {
+      clearInterval(timerInterval);
+      onTimerComplete();
+      // Auto-complete session when timer runs out (saves streak)
+      if (sessionActive) completeSession();
+    }
   }, 1000);
 }
 
 function onTimerComplete() {
   secondsLeft = 0;
   document.getElementById('timerLabel').textContent = 'done!';
-  document.getElementById('timerMsg').textContent   = '✅ 5 minutes done! You\'re now smarter than before.';
-  saveStreak(); // timer-based streak save (independent of session state)
+  document.getElementById('timerMsg').textContent   = '✅ 5 minutes done! Hit "Finish Session" to complete.';
   const flash = document.getElementById('unlockFlash');
   flash.style.display = 'block';
   setTimeout(() => { flash.style.display = 'none'; }, 1500);
-  // Close confirm popup if somehow open (edge case: timer expires while popup is showing)
+  // Close confirm popup if open — timer expired so no need to confirm
   document.getElementById('confirmOverlay').style.display = 'none';
 }
 

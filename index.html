@@ -669,6 +669,52 @@
   .history-badge span { color: var(--accent3); }
 
 
+
+  /* ── Early finish confirmation popup ── */
+  .confirm-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(10px);
+    z-index: 80;
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+    animation: fadeIn 0.25s ease;
+  }
+  .confirm-card {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 22px;
+    padding: 36px 28px;
+    max-width: 380px;
+    width: 100%;
+    text-align: center;
+    position: relative;
+  }
+  .confirm-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    border-radius: 22px 22px 0 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+  body.warm-theme .confirm-card::before {
+    background: linear-gradient(90deg, #cc1111, #8b0000);
+  }
+  .confirm-emoji { font-size: 2.4rem; display: block; margin-bottom: 14px; }
+  .confirm-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.25rem;
+    margin-bottom: 12px;
+    line-height: 1.3;
+  }
+  .confirm-msg {
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    line-height: 1.7;
+    margin-bottom: 26px;
+  }
+  .confirm-msg em { color: var(--text); font-style: normal; font-weight: 500; }
+  .confirm-btns { display: flex; gap: 10px; }
+  .confirm-btns .btn { flex: 1; }
+
   /* ── Onboarding tour ── */
   .tour-overlay {
     position: fixed; inset: 0;
@@ -802,6 +848,30 @@
   }
   .tour-skip:hover { color: var(--text); }
 
+
+  .tour-replay-btn {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: var(--surface2);
+    color: var(--text-muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .tour-replay-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,229,195,0.08);
+  }
+  body.warm-theme .tour-replay-btn:hover {
+    border-color: #cc1111;
+    color: #cc1111;
+    background: rgba(204,17,17,0.08);
+  }
   .tour-dots {
     display: flex;
     gap: 5px;
@@ -891,6 +961,7 @@
 
   <div class="header">
     <div class="logo">Flut<span>ters</span></div>
+    <button class="tour-replay-btn" onclick="replayTour()" title="Show walkthrough">?</button>
     <div id="streakSyncWrap" style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
       <div class="streak-badge">🔥 <span id="streakCount">0</span> day streak</div>
       <button class="streak-sync-btn" onclick="openSyncModal()">sync across devices</button>
@@ -1302,12 +1373,15 @@ function startTimer() {
 }
 
 function onTimerComplete() {
+  secondsLeft = 0;
   document.getElementById('timerLabel').textContent = 'done!';
   document.getElementById('timerMsg').textContent   = '✅ 5 minutes done! You\'re now smarter than before.';
-  saveStreak();
+  saveStreak(); // timer-based streak save (independent of session state)
   const flash = document.getElementById('unlockFlash');
   flash.style.display = 'block';
   setTimeout(() => { flash.style.display = 'none'; }, 1500);
+  // Close confirm popup if somehow open (edge case: timer expires while popup is showing)
+  document.getElementById('confirmOverlay').style.display = 'none';
 }
 
 // ─── Overlay ──────────────────────────────────────────────────────────────────
@@ -1619,10 +1693,39 @@ function bookmarkFact() {
 }
 
 function finishSession() {
+  // If timer already done — finish immediately, no popup needed
+  if (secondsLeft <= 0) {
+    completeSession();
+    return;
+  }
+  // Timer still running — show confirmation popup
+  const msg = IS_PERSONAL ? getHerConfirmMessage() : REGULAR_CONFIRM;
+  document.getElementById('confirmEmoji').textContent = msg.emoji;
+  document.getElementById('confirmTitle').textContent = msg.title;
+  document.getElementById('confirmMsg').innerHTML    = msg.msg;
+  document.getElementById('confirmOverlay').style.display = 'flex';
+}
+
+function confirmFinish() {
+  document.getElementById('confirmOverlay').style.display = 'none';
+  clearInterval(timerInterval); // stop the timer
+  secondsLeft = 0;
+  updateTimerDisplay(0);
+  completeSession();
+}
+
+function cancelFinish() {
+  document.getElementById('confirmOverlay').style.display = 'none';
+  // Timer keeps running — nothing else changes
+}
+
+function completeSession() {
   sessionActive = false;
-  saveStreak(); // increment streak when session finished, even if timer still running
+  saveStreak();
+  clearInterval(timerInterval);
   for (let i = 0; i < FACTS_PER_SESSION; i++) document.getElementById('dot'+i).className = 'pdot done';
   document.getElementById('timerLabel').textContent = 'complete!';
+  document.getElementById('timerMsg').textContent   = '✅ Done! You\'re now smarter than before.';
 
   document.getElementById('mainArea').innerHTML = `
     <div class="card complete-card">
@@ -1630,7 +1733,7 @@ function finishSession() {
       <div class="complete-title">Session Complete!</div>
       <div class="complete-sub">
         You just learned ${FACTS_PER_SESSION} genuinely different medical facts.<br>
-        Next time you're with medical staff — drop one of these. Watch their faces. 😏
+        Next time you\'re with medical staff — drop one of these. Watch their faces. 😏
       </div>
       <div class="btn-row" style="justify-content:center">
         <button class="btn btn-primary" onclick="restartSession()">Learn 3 More</button>
@@ -1670,6 +1773,50 @@ function reviewSaved() {
   document.getElementById('savedSection').scrollIntoView({ behavior: 'smooth' });
 }
 
+
+
+// ─── Early finish confirmation messages ───────────────────────────────────────
+
+// Regular version — one consistent light-hearted message
+const REGULAR_CONFIRM = {
+  emoji: '🕵️',
+  title: 'Finished early?',
+  msg: 'Timer's still going — did you actually read all 3 facts, or are you pulling a fast one? No judgment. <em>Okay, a little judgment.</em>',
+};
+
+// Her version — rotating pool of cute/funny messages, new each session
+const HER_CONFIRMS = [
+  { emoji: '👀', title: 'Mmhm. Sure.',          msg: 'On a scale of 1 to <em>"I definitely read every word"</em> — where are we actually landing right now?' },
+  { emoji: '🧐', title: 'Is that so?',           msg: 'The facts were that good, huh? Or did you just skim to the memory hook and call it a day? <em>I see you.</em>' },
+  { emoji: '🫀', title: 'Speed run?',            msg: 'Medical knowledge acquired at lightning speed. <em>Genuinely impressive</em> — or deeply suspicious. Possibly both.' },
+  { emoji: '😏', title: 'Already?',              msg: 'You absorbed 3 nursing biology facts faster than a bolus IV push. <em>The body is a remarkable thing.</em>' },
+  { emoji: '🔬', title: 'Peer review required.', msg: 'These findings cannot be published without independent verification. Can you confirm the methodology was sound?' },
+  { emoji: '💉', title: 'Quick draw.',           msg: 'That was fast. Either you're incredibly smart, or you're just <em>very good at clicking buttons.</em> The data is inconclusive.' },
+  { emoji: '🩺', title: 'Clinical opinion?',     msg: 'A full assessment takes time. But if you're confident in your findings — <em>who am I to argue with the expert?</em>' },
+  { emoji: '😇', title: 'Totally honest?',       msg: 'This is a judgment-free zone. <em>Mostly.</em> Did the facts actually land, or did your eyes do that thing where they read but your brain was elsewhere?' },
+  { emoji: '🧬', title: 'Rapid result.',         msg: 'PCR results take 4 hours. You took 90 seconds. The science is <em>technically</em> impressive but we're requesting a second sample.' },
+  { emoji: '⏱️', title: 'New record?',           msg: 'At this rate you'll know all of nursing biology by Thursday. <em>Ambitious. Possibly delusional. Definitely adorable.</em>' },
+  { emoji: '🤭', title: 'Caught you.',           msg: 'The timer disagrees with your assessment. But honestly? <em>The confidence alone deserves the streak point.</em>' },
+  { emoji: '💊', title: 'Fast-acting.',          msg: 'Half-life of your attention span: approximately 2 minutes. Still, <em>knowledge was absorbed at some point in there.</em> Probably.' },
+];
+
+// Shuffle helper — Fisher-Yates
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Per-session pick (shuffled queue so no repeats until all seen)
+let herConfirmQueue = [];
+
+function getHerConfirmMessage() {
+  if (herConfirmQueue.length === 0) herConfirmQueue = shuffleArray(HER_CONFIRMS);
+  return herConfirmQueue.pop();
+}
 
 // ─── Onboarding tour ──────────────────────────────────────────────────────────
 const TOUR_STEPS = [
@@ -1862,6 +2009,11 @@ function positionArrow(targetRect, card, cardTop, cardLeft, cardW, position) {
   path.setAttribute('d', `M ${10} ${y1 < y2 ? 5 : h-5} Q ${mx} ${my} ${w-10} ${y1 < y2 ? h-5 : 5}`);
 }
 
+function replayTour() {
+  localStorage.removeItem('flutters_tour_done');
+  startTour();
+}
+
 function checkAndStartTour() {
   const done = localStorage.getItem('flutters_tour_done');
   if (!done) {
@@ -1881,6 +2033,20 @@ loadFromServer(); // loads streak + saved from server, then updates display
 loadHistory();
 updateTimerDisplay(TOTAL_TIME);
 </script>
+
+
+<!-- Early finish confirmation popup -->
+<div id="confirmOverlay" class="confirm-overlay" style="display:none">
+  <div class="confirm-card">
+    <span class="confirm-emoji" id="confirmEmoji">🤔</span>
+    <div class="confirm-title" id="confirmTitle">Finished early?</div>
+    <div class="confirm-msg" id="confirmMsg"></div>
+    <div class="confirm-btns">
+      <button class="btn btn-primary" onclick="confirmFinish()">Yes, count it ✓</button>
+      <button class="btn btn-secondary" onclick="cancelFinish()">Keep reading</button>
+    </div>
+  </div>
+</div>
 
 <!-- Tour overlay elements -->
 <div class="tour-mask" id="tourMask" style="display:none"></div>

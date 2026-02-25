@@ -7,6 +7,11 @@
 <meta name="description" content="5 minutes a day of fascinating nursing biology facts with memory hooks and conversation starters. Powered by AI.">
 <meta name="theme-color" content="#0a0f1a">
 
+<!-- Favicons -->
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+
 <!-- PWA / Add to Home Screen -->
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -789,7 +794,6 @@ Respond ONLY with valid JSON, no markdown fences, no extra text:
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
       max_tokens: 1000,
       messages: [{ role: 'user', content: prompt }]
     })

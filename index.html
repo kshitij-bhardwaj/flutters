@@ -865,16 +865,12 @@ const IS_PERSONAL = new URLSearchParams(window.location.search).get('for') === '
 function initPersonalisation() {
   if (!IS_PERSONAL) return;
   document.body.classList.add('warm-theme');
-  // Show welcome card once ever
-  const seen = localStorage.getItem('flutters_welcomed');
-  if (!seen) {
-    document.getElementById('welcomeOverlay').style.display = 'flex';
-  }
+  // Show welcome card every time she opens the app
+  document.getElementById('welcomeOverlay').style.display = 'flex';
 }
 
 function closeWelcome() {
   document.getElementById('welcomeOverlay').style.display = 'none';
-  localStorage.setItem('flutters_welcomed', '1');
 }
 
 // ─── Sync code ────────────────────────────────────────────────────────────────

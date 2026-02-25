@@ -785,7 +785,7 @@ Respond ONLY with valid JSON, no markdown fences, no extra text:
   "wowFact": "One extra 'wait really?' sentence — a stat, edge case, or clinical implication that sparks conversation"
 }`;
 
-  const response = await fetch('/api/chat', {
+  const response = await fetch('/.netlify/functions/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

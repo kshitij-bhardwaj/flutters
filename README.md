@@ -2,7 +2,7 @@
 
 > A daily 5-minute AI-powered biology fact app for anyone who wants to casually impress medical staff with real nursing knowledge.
 
-**[→ Live Demo](https://YOUR-SITE.netlify.app)**
+**[→ Live Demo](https://ourflutters.netlify.app/)**
 
 ---
 

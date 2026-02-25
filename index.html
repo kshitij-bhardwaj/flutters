@@ -705,13 +705,13 @@
   <div class="sync-card">
     <div class="sync-title">🔄 Streak Sync Code</div>
     <div class="sync-sub">
-      Your streak is stored on this device. Copy your sync code to use the same streak on another device — paste it there under "Sync streak".
+      Your sync code links this device to your streak and saved facts. Share it across devices to keep everything in sync — streak and saved facts are merged automatically.
     </div>
     <div class="sync-code-display" id="syncCodeDisplay" onclick="copySyncCode()"></div>
     <div class="sync-copied" id="syncCopied"></div>
     <div class="sync-code-note">Tap to copy · This code is private — don't share it</div>
     <hr class="sync-divider">
-    <div class="sync-sub" style="margin-bottom:12px">Have a code from another device? Enter it below:</div>
+    <div class="sync-sub" style="margin-bottom:12px">To sync from another device, enter its 8-character code below. Your streak and saved facts will merge automatically.</div>
     <input class="sync-input" id="syncCodeInput" placeholder="Paste your 8-character code" maxlength="8" oninput="this.value=this.value.toUpperCase()"/>
     <div class="sync-error" id="syncError"></div>
     <div class="btn-row">
@@ -911,7 +911,7 @@ function copySyncCode() {
   setTimeout(() => { document.getElementById('syncCopied').textContent = ''; }, 2000);
 }
 
-function applySyncCode() {
+async function applySyncCode() {
   const input = document.getElementById('syncCodeInput').value.trim().toUpperCase();
   const errEl = document.getElementById('syncError');
   if (input.length !== 8 || !/^[A-Z0-9]+$/.test(input)) {
@@ -922,36 +922,120 @@ function applySyncCode() {
     errEl.textContent = "That's already your current code!";
     return;
   }
-  // Swap to new sync code — streak will now read from the new code's key
+  // Swap to new sync code — reload all data from server for new code
   localStorage.setItem('flutters_synccode', input);
   closeSyncModal();
-  initStreak(); // refresh display
+  streakSavedThisSession = false;
+  await loadFromServer(); // pull streak + saved from server for the new code
+}
+
+// ─── Server sync (Netlify Blobs via /api/sync) ───────────────────────────────
+// All streak + saved facts are stored server-side under the sync code.
+// localStorage is used as a cache only.
+
+let serverStreak = { count: 0, last: null };
+let syncInProgress = false;
+
+async function loadFromServer() {
+  const code = getOrCreateSyncCode();
+  try {
+    const res = await fetch(`/api/sync?code=${code}`);
+    if (!res.ok) throw new Error('sync fetch failed');
+    const data = await res.json();
+    // Server data is source of truth
+    serverStreak = data.streak || { count: 0, last: null };
+    // Merge server saved facts with any local ones not yet synced
+    const localSaved = getLocalSaved();
+    const merged = mergeSavedLocal(data.saved || [], localSaved);
+    savedFacts = merged;
+    renderSaved();
+    updateStreakDisplay();
+  } catch (e) {
+    // Offline fallback — use localStorage cache
+    console.warn('Sync unavailable, using local cache:', e.message);
+    serverStreak = JSON.parse(localStorage.getItem('flutters_streak_cache') || '{"count":0,"last":null}');
+    savedFacts = getLocalSaved();
+    renderSaved();
+    updateStreakDisplay();
+  }
+}
+
+async function saveToServer() {
+  if (syncInProgress) return;
+  syncInProgress = true;
+  const code = getOrCreateSyncCode();
+  try {
+    const res = await fetch(`/api/sync?code=${code}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ streak: serverStreak, saved: savedFacts }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      // Server returns merged result
+      serverStreak = data.streak;
+      savedFacts = data.saved;
+      // Cache locally for offline use
+      localStorage.setItem('flutters_streak_cache', JSON.stringify(serverStreak));
+      localStorage.setItem('flutters_saved_cache', JSON.stringify(savedFacts));
+      renderSaved();
+      updateStreakDisplay();
+    }
+  } catch (e) {
+    // Save to local cache if offline
+    localStorage.setItem('flutters_streak_cache', JSON.stringify(serverStreak));
+    localStorage.setItem('flutters_saved_cache', JSON.stringify(savedFacts));
+    console.warn('Saved locally (offline):', e.message);
+  } finally {
+    syncInProgress = false;
+  }
+}
+
+function getLocalSaved() {
+  try { return JSON.parse(localStorage.getItem('flutters_saved_cache') || '[]'); } catch { return []; }
+}
+
+function mergeSavedLocal(serverArr, localArr) {
+  const seen = new Set();
+  const merged = [];
+  for (const f of [...localArr, ...serverArr]) {
+    if (!seen.has(f.title)) { seen.add(f.title); merged.push(f); }
+  }
+  return merged.slice(0, 100);
 }
 
 // ─── Streak ───────────────────────────────────────────────────────────────────
-function getStreak() {
-  try {
-    const d = JSON.parse(localStorage.getItem(getSyncStreakKey()) || '{}');
-    const today = new Date().toDateString();
-    const yesterday = new Date(Date.now() - 86400000).toDateString();
-    if (d.last === today) return d.count || 1;
-    if (d.last === yesterday) return d.count || 0;
-    return 0;
-  } catch { return 0; }
-}
-
-function saveStreak() {
+function updateStreakDisplay() {
   const today = new Date().toDateString();
-  const existing = JSON.parse(localStorage.getItem(getSyncStreakKey()) || '{}');
-  if (existing.last === today) return;
-  const newCount = existing.last === new Date(Date.now() - 86400000).toDateString()
-    ? (existing.count || 0) + 1 : 1;
-  localStorage.setItem(getSyncStreakKey(), JSON.stringify({ last: today, count: newCount }));
-  document.getElementById('streakCount').textContent = newCount;
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  let count = 0;
+  if (serverStreak.last === today || serverStreak.last === yesterday) {
+    count = serverStreak.count || 0;
+  }
+  document.getElementById('streakCount').textContent = count;
 }
 
 function initStreak() {
-  document.getElementById('streakCount').textContent = getStreak();
+  updateStreakDisplay();
+}
+
+// Called when a session completes (timer OR finish button, whichever first)
+let streakSavedThisSession = false;
+
+function saveStreak() {
+  if (streakSavedThisSession) return; // don't double-count
+  streakSavedThisSession = true;
+  const today = new Date().toDateString();
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  // Only increment if not already done today
+  if (serverStreak.last === today) {
+    updateStreakDisplay(); return;
+  }
+  const newCount = serverStreak.last === yesterday
+    ? (serverStreak.count || 0) + 1 : 1;
+  serverStreak = { count: newCount, last: today };
+  updateStreakDisplay();
+  saveToServer();
 }
 
 // ─── Long-term fact history ───────────────────────────────────────────────────
@@ -1001,12 +1085,13 @@ function buildAvoidClause() {
 
 // ─── Saved facts ──────────────────────────────────────────────────────────────
 function loadSaved() {
-  try { savedFacts = JSON.parse(localStorage.getItem('flutters_saved') || '[]'); } catch { savedFacts = []; }
+  // Loaded from server in loadFromServer() — this is just a fallback
   renderSaved();
 }
 
 function persistSaved() {
-  localStorage.setItem('flutters_saved', JSON.stringify(savedFacts));
+  // Save to server (which also updates local cache)
+  saveToServer();
 }
 
 function renderSaved() {
@@ -1310,6 +1395,7 @@ function renderLoading(msg) {
 async function startSession() {
   if (sessionActive) return;
   sessionActive = true;
+  streakSavedThisSession = false; // reset per session
   currentFacts = [];
   currentFactIdx = 0;
   sessionSubcatQueue = buildSubcatQueue(selectedCat);
@@ -1381,6 +1467,7 @@ function bookmarkFact() {
 
 function finishSession() {
   sessionActive = false;
+  saveStreak(); // increment streak when session finished, even if timer still running
   for (let i = 0; i < FACTS_PER_SESSION; i++) document.getElementById('dot'+i).className = 'pdot done';
   document.getElementById('timerLabel').textContent = 'complete!';
 
@@ -1432,8 +1519,8 @@ function reviewSaved() {
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 initPersonalisation();
-initStreak();
-loadSaved();
+initStreak(); // shows 0 while loading
+loadFromServer(); // loads streak + saved from server, then updates display
 loadHistory();
 updateTimerDisplay(TOTAL_TIME);
 </script>

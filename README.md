@@ -2,15 +2,13 @@
 
 > A daily 5-minute AI-powered biology fact app for anyone who wants to casually impress medical staff with real nursing knowledge.
 
-**[→ Live Demo](https://YOUR-USERNAME.github.io/flutters)**
-
-![Flutters screenshot](https://via.placeholder.com/800x450/0a0f1a/00e5c3?text=Flutters+App)
+**[→ Live Demo](https://YOUR-SITE.netlify.app)**
 
 ---
 
 ## What it does
 
-Every session you get **3 genuinely different facts** from nursing biology — each with:
+Every session: **3 genuinely different facts** from nursing biology, each with:
 
 - 🧠 **Memory hook** — mnemonic or analogy to make it stick
 - 💬 **Conversation starter** — the "wait, really?" moment
@@ -22,55 +20,56 @@ Every session you get **3 genuinely different facts** from nursing biology — e
 
 ---
 
-## Setup
+## Deploy to Netlify (free, ~5 minutes)
 
-### 1. Get an Anthropic API key
+> **Why Netlify instead of GitHub Pages?**
+> The Anthropic API blocks direct browser requests (CORS). Netlify runs a tiny serverless function that proxies the request server-side — your API key never touches the browser.
 
-1. Go to [console.anthropic.com](https://console.anthropic.com)
-2. Sign up (new accounts get free credits)
-3. Create an API key under **API Keys**
-
-### 2. Deploy to GitHub Pages
+### Step 1 — Push this repo to GitHub
 
 ```bash
-# Clone this repo
-git clone https://github.com/YOUR-USERNAME/flutters.git
-cd flutters
-
-# Push to GitHub, then enable Pages:
-# Settings → Pages → Source: Deploy from branch → main → / (root)
+git init
+git add .
+git commit -m "Initial Flutters app"
+# Create a new repo on github.com called "flutters", then:
+git remote add origin https://github.com/YOUR-USERNAME/flutters.git
+git push -u origin main
 ```
 
-Your site will be live at `https://YOUR-USERNAME.github.io/flutters`
+### Step 2 — Connect to Netlify
 
-### 3. First use
+1. Go to [netlify.com](https://netlify.com) → **Add new site** → **Import an existing project**
+2. Connect GitHub → select the `flutters` repo
+3. Build settings are auto-detected from `netlify.toml` — click **Deploy site**
 
-Open the site → enter your API key when prompted → hit **Start Session**.
+### Step 3 — Add your Anthropic API key
 
-Your key is stored only in your **browser's localStorage** — it never goes anywhere except directly to Anthropic's API.
+1. In Netlify: **Site configuration** → **Environment variables** → **Add a variable**
+2. Key: `ANTHROPIC_API_KEY`  Value: `sk-ant-your-key-here`
+3. Get a key at [console.anthropic.com](https://console.anthropic.com) — new accounts get free credits
+4. Click **Save** → Netlify auto-redeploys
+
+Done. The app works, the key is invisible.
 
 ---
 
-## Add to your phone (recommended)
+## Add to phone (recommended)
 
-**iPhone/iPad:** Safari → Share button → "Add to Home Screen"  
+**iPhone/iPad:** Safari → Share → "Add to Home Screen"  
 **Android:** Chrome → Menu (⋮) → "Add to Home Screen"
 
-It installs as a full-screen app — no browser UI.
+Installs as a full-screen app — no browser chrome.
 
 ---
 
-## How the variety works
+## Local development
 
-The app maintains a **subcategory queue** shuffled per session. 16 distinct subject pools cover:
-
-- Nervous System, Cardiovascular, Respiratory, Renal
-- Endocrine, Immunology, Hematology, GI
-- Pharmacodynamics, Pharmacokinetics
-- Microbiology, Cell Biology, Genetics, Musculoskeletal
-- Latest Research (2023–2025), Nursing Mnemonics
-
-Each fact is generated with a full history of **what was already shown this session** passed as context, so the AI can't repeat topics.
+```bash
+npm install -g netlify-cli
+echo "ANTHROPIC_API_KEY=sk-ant-your-key-here" > .env
+netlify dev
+# Open http://localhost:8888
+```
 
 ---
 
@@ -79,32 +78,21 @@ Each fact is generated with a full history of **what was already shown this sess
 | Layer | Detail |
 |-------|--------|
 | Frontend | Vanilla HTML/CSS/JS — zero build step |
-| AI | Anthropic `claude-sonnet-4-20250514` via API |
-| Storage | Browser `localStorage` (key + saves + streak) |
-| Hosting | GitHub Pages (static) |
-
----
-
-## Local development
-
-No build step needed. Just open `index.html` in a browser — or use a local server:
-
-```bash
-npx serve .
-# or
-python3 -m http.server 8080
-```
+| API proxy | Netlify Function (`netlify/functions/chat.js`) |
+| AI | Anthropic `claude-sonnet-4-20250514` |
+| Persistence | Browser `localStorage` (saves + streak) |
+| Hosting | Netlify free tier |
 
 ---
 
 ## Privacy
 
-- Your API key is stored only in your browser's localStorage
-- No analytics, no tracking, no ads
-- No server — everything runs client-side
+- API key lives only in Netlify's environment variables — never in the browser
+- No analytics, no tracking, no ads, no server-side storage
+- Saved facts and streak stored in your own browser's localStorage only
 
 ---
 
 ## License
 
-MIT — use it, fork it, improve it.
+MIT
